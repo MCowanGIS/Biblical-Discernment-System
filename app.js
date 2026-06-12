@@ -35,9 +35,14 @@ function setupEventListeners() {
 // === PHASE 1: ANALYZE TEACHING ===
 async function analyzeTeaching() {
     const teaching = teachingInput.value.trim();
-    
-    if (!teaching) {
-        alert('Please enter a teaching to analyze');
+
+    function isQuestion(text) {
+  const trimmed = text.trim().toLowerCase();
+  return trimmed.endsWith('?') ||
+         trimmed.startsWith('is ') ||
+         trimmed.startsWith('are ') ||
+         trimmed.startsWith('does ') ||
+         trimmed.startsWith('do ');
         return;
     }
     
@@ -61,6 +66,19 @@ async function analyzeTeaching() {
     // Step 4: Generate analysis
     const analysis = DOCTRINAL_RULES.generateAnalysis(teaching, categories, verses, verdict);
     currentState.analysis = analysis;
+
+    function evaluateQuestion(input, mapping) {
+    const category = doctrinalStandards[mapping.category];
+    const yesVerdict = evaluateClaimAgainstCategory(mapping.yesClaim, category);
+    // you can also show the noClaim as your doctrinal summary
+
+  return {
+    categoryName: mapping.category,
+    verdict: yesVerdict, // probably 'Unbiblical / Works-leaning' here
+    keyVerses: category.keyVerses,
+    explanation: buildExplanation(mapping.yesClaim, category, yesVerdict),
+  };
+}
     
     // Show results
     renderResults();
