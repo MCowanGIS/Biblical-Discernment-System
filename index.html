@@ -10,71 +10,66 @@
     <div class="container">
         <header>
             <h1>🛡 Biblical Discernment System 5.0</h1>
-            <p class="subtitle">Evaluate teachings against the 66 books of the Bible</p>
+            <p class="subtitle">Evaluate teachings against Scripture (all 66 books)</p>
         </header>
 
         <main>
             <!-- Phase 1: Input Teaching -->
             <section id="phase1" class="phase active">
-                <h2>Step 1: Describe the Teaching</h2>
-                <p class="instruction">Paste the teaching, link, or description below:</p>
+                <h2>Step 1: Enter the Teaching</h2>
+                <p class="instruction">Describe the teaching, claim, or doctrine you want to evaluate:</p>
                 
                 <div class="input-group">
                     <textarea 
                         id="teachingInput" 
-                        placeholder="Enter the teaching or claim you want to evaluate..."
+                        placeholder="Example: Jesus Christ is fully God and fully human, died for our sins, and physically rose from the dead on the third day."
                         class="teaching-textarea"
                     ></textarea>
                 </div>
                 
-                <button id="analyzeBtn" class="btn btn-primary">Analyze Teaching</button>
+                <button id="analyzeBtn" class="btn btn-primary">Evaluate Against Scripture</button>
             </section>
 
-            <!-- Phase 2: Smart Questions -->
+            <!-- Phase 2: Loading -->
             <section id="phase2" class="phase">
-                <h2>Step 2: Answer Clarifying Questions</h2>
-                <p class="instruction">These questions help us evaluate the teaching accurately:</p>
-                
-                <div id="questionsContainer" class="questions-container"></div>
-                
-                <div class="phase-actions">
-                    <button id="backBtn1" class="btn btn-secondary">Back</button>
-                    <button id="evaluateBtn" class="btn btn-primary">Evaluate Teaching</button>
+                <div class="loading-container">
+                    <div class="spinner"></div>
+                    <h2>Searching Scripture...</h2>
+                    <p id="loadingText">Analyzing teaching and pulling relevant Bible verses...</p>
                 </div>
             </section>
 
             <!-- Phase 3: Results -->
             <section id="phase3" class="phase">
-                <h2>Step 3: Assessment Results</h2>
+                <h2>Evaluation Results</h2>
                 
                 <!-- Overall Verdict -->
                 <div id="verdictBox" class="verdict-box"></div>
                 
-                <!-- Category Breakdown -->
-                <div id="categoriesContainer" class="categories-container"></div>
+                <!-- Category Identified -->
+                <div id="categoryBox" class="category-box"></div>
                 
-                <!-- Scripture References -->
+                <!-- Scripture Results -->
                 <div id="scriptureBox" class="scripture-box">
-                    <h3>📖 Key Scripture References</h3>
-                    <ul id="scriptureList" class="scripture-list"></ul>
+                    <h3>📖 Relevant Scripture Passages</h3>
+                    <div id="scriptureResults" class="scripture-results"></div>
                 </div>
                 
-                <!-- Next Steps -->
-                <div id="nextStepsBox" class="next-steps-box">
-                    <h3>📚 Next Steps for Deeper Study</h3>
-                    <ul id="nextStepsList" class="next-steps-list"></ul>
+                <!-- Analysis -->
+                <div id="analysisBox" class="analysis-box">
+                    <h3>📊 Analysis</h3>
+                    <p id="analysisText"></p>
                 </div>
                 
                 <!-- Actions -->
                 <div class="phase-actions">
-                    <button id="backBtn2" class="btn btn-secondary">Back to Questions</button>
-                    <button id="startOverBtn" class="btn btn-primary">Start Over</button>
+                    <button id="startOverBtn" class="btn btn-primary">Evaluate Another Teaching</button>
                 </div>
             </section>
         </main>
 
         <footer>
-            <p>📖 Evaluating teachings against the authority of Scripture (all 66 books)</p>
+            <p>📖 All evaluations are based on the 66 books of the Bible (ESV Translation)</p>
         </footer>
     </div>
 

@@ -1,14 +1,14 @@
 // ============================================
 // BIBLICAL DISCERNMENT SYSTEM 5.0
-// Main Application Logic
+// Direct Scripture Evaluation
 // ============================================
 
 let currentState = {
     teaching: '',
-    questions: [],
-    answers: {},
+    detectedCategories: [],
     verdict: null,
-    categoryScores: {}
+    scriptureVerses: [],
+    analysis: ''
 };
 
 // === DOM ELEMENTS ===
@@ -20,10 +20,6 @@ const phases = {
 
 const teachingInput = document.getElementById('teachingInput');
 const analyzeBtn = document.getElementById('analyzeBtn');
-const questionsContainer = document.getElementById('questionsContainer');
-const evaluateBtn = document.getElementById('evaluateBtn');
-const backBtn1 = document.getElementById('backBtn1');
-const backBtn2 = document.getElementById('backBtn2');
 const startOverBtn = document.getElementById('startOverBtn');
 
 // === INITIALIZATION ===
@@ -33,14 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function setupEventListeners() {
     analyzeBtn.addEventListener('click', analyzeTeaching);
-    evaluateBtn.addEventListener('click', evaluateTeaching);
-    backBtn1.addEventListener('click', () => goToPhase(1));
-    backBtn2.addEventListener('click', () => goToPhase(2));
     startOverBtn.addEventListener('click', resetForm);
 }
 
 // === PHASE 1: ANALYZE TEACHING ===
-function analyzeTeaching() {
+async function analyzeTeaching() {
     const teaching = teachingInput.value.trim();
     
     if (!teaching) {
@@ -49,85 +42,29 @@ function analyzeTeaching() {
     }
     
     currentState.teaching = teaching;
-    currentState.questions = DOCTRINAL_RULES.generateSmartQuestions(teaching);
     
-    renderQuestions();
+    // Show loading
     goToPhase(2);
-}
-
-// === PHASE 2: RENDER QUESTIONS ===
-function renderQuestions() {
-    questionsContainer.innerHTML = '';
     
-    currentState.questions.forEach((q, index) => {
-        const questionDiv = document.createElement('div');
-        questionDiv.className = 'question-card';
-        questionDiv.innerHTML = `
-            <div class="question-header">
-                <span class="category-badge">${DOCTRINAL_RULES.categories[q.category - 1].icon} ${q.categoryName}</span>
-                <span class="question-number">Question ${index + 1} of ${currentState.questions.length}</span>
-            </div>
-            <p class="question-text">${q.text}</p>
-            <div class="option-group">
-                ${q.options.map(opt => `
-                    <label class="option-label">
-                        <input 
-                            type="radio" 
-                            name="question-${q.category}" 
-                            value="${opt}"
-                            ${currentState.answers[q.category] === opt ? 'checked' : ''}
-                        >
-                        <span class="option-text">${opt}</span>
-                    </label>
-                `).join('')}
-            </div>
-        `;
-        
-        // Add change listeners
-        const radios = questionDiv.querySelectorAll('input[type="radio"]');
-        radios.forEach(radio => {
-            radio.addEventListener('change', (e) => {
-                currentState.answers[q.category] = e.target.value;
-            });
-        });
-        
-        questionsContainer.appendChild(questionDiv);
-    });
-}
-
-// === PHASE 3: EVALUATE TEACHING ===
-function evaluateTeaching() {
-    // Check all questions answered
-    if (Object.keys(currentState.answers).length !== currentState.questions.length) {
-        alert('Please answer all questions');
-        return;
-    }
+    // Step 1: Detect which categories the teaching falls into
+    const categories = DOCTRINAL_RULES.detectCategories(teaching);
+    currentState.detectedCategories = categories;
     
-    // Calculate verdict
-    const verdictId = DOCTRINAL_RULES.calculateVerdict(currentState.answers);
-    currentState.verdict = DOCTRINAL_RULES.verdicts[verdictId - 1];
+    // Step 2: Get relevant Bible verses for those categories
+    const verses = await DOCTRINAL_RULES.getScriptureVerses(categories);
+    currentState.scriptureVerses = verses;
     
-    // Score each category based on answers
-    scoreCategories();
+    // Step 3: Calculate verdict based on teaching vs scripture
+    const verdict = DOCTRINAL_RULES.evaluateTeachingAgainstScripture(teaching, verses);
+    currentState.verdict = verdict;
     
-    // Render results
+    // Step 4: Generate analysis
+    const analysis = DOCTRINAL_RULES.generateAnalysis(teaching, categories, verses, verdict);
+    currentState.analysis = analysis;
+    
+    // Show results
     renderResults();
     goToPhase(3);
-}
-
-// === SCORE CATEGORIES ===
-function scoreCategories() {
-    DOCTRINAL_RULES.categories.forEach(cat => {
-        const answer = currentState.answers[cat.id];
-        
-        if (answer === 'Yes') {
-            currentState.categoryScores[cat.id] = { score: 1, status: 'Aligns with Scripture' };
-        } else if (answer === 'Partially/Unclear') {
-            currentState.categoryScores[cat.id] = { score: 0.5, status: 'Partially aligns / Needs clarification' };
-        } else {
-            currentState.categoryScores[cat.id] = { score: 0, status: 'Contradicts Scripture' };
-        }
-    });
 }
 
 // === RENDER RESULTS ===
@@ -140,65 +77,70 @@ function renderResults() {
             <div class="verdict-text">
                 <h3 class="verdict-title">${currentState.verdict.name}</h3>
                 <p class="verdict-description">${currentState.verdict.description}</p>
-                <p class="teaching-quote"><strong>Teaching:</strong> "${currentState.teaching.substring(0, 100)}${currentState.teaching.length > 100 ? '...' : ''}"</p>
+                <p class="teaching-quote"><strong>Teaching Evaluated:</strong> "${currentState.teaching.substring(0, 80)}${currentState.teaching.length > 80 ? '...' : ''}"</p>
             </div>
         </div>
     `;
     
-    // Render category breakdown
-    const categoriesContainer = document.getElementById('categoriesContainer');
-    categoriesContainer.innerHTML = '<h3>Category Breakdown</h3>';
+    // Render category box
+    const categoryBox = document.getElementById('categoryBox');
+    const categoryNames = currentState.detectedCategories
+        .map(catId => {
+            const cat = DOCTRINAL_RULES.categories.find(c => c.id === catId);
+            return cat ? `${cat.icon} ${cat.name}` : '';
+        })
+        .filter(name => name)
+        .join(' | ');
     
-    const categoriesGrid = document.createElement('div');
-    categoriesGrid.className = 'categories-grid';
+    categoryBox.innerHTML = `
+        <div class="category-content">
+            <h4>Theological Category</h4>
+            <p>${categoryNames || 'General Biblical Teaching'}</p>
+        </div>
+    `;
     
-    DOCTRINAL_RULES.categories.forEach(cat => {
-        const score = currentState.categoryScores[cat.id];
-        const statusColor = score.score === 1 ? '#00b300' : score.score === 0.5 ? '#ffcc00' : '#ff3333';
+    // Render scripture results
+    const scriptureResults = document.getElementById('scriptureResults');
+    scriptureResults.innerHTML = '';
+    
+    if (currentState.scriptureVerses.length > 0) {
+        const verseGroups = {};
         
-        const categoryCard = document.createElement('div');
-        categoryCard.className = 'category-card';
-        categoryCard.style.borderLeftColor = statusColor;
-        categoryCard.innerHTML = `
-            <div class="category-header">
-                <span class="category-icon">${cat.icon}</span>
-                <h4 class="category-name">${cat.name}</h4>
-            </div>
-            <p class="category-status" style="color: ${statusColor}">${score.status}</p>
-        `;
-        
-        categoriesGrid.appendChild(categoryCard);
-    });
-    
-    categoriesContainer.appendChild(categoriesGrid);
-    
-    // Render scripture references
-    const scriptureList = document.getElementById('scriptureList');
-    scriptureList.innerHTML = '';
-    
-    // Get top categories mentioned
-    const topCategories = currentState.questions.slice(0, 5).map(q => q.category);
-    topCategories.forEach(catId => {
-        const references = DOCTRINAL_RULES.scriptureReferences[catId];
-        references.forEach(ref => {
-            const li = document.createElement('li');
-            li.textContent = ref;
-            li.className = 'scripture-verse';
-            scriptureList.appendChild(li);
+        currentState.scriptureVerses.forEach(verse => {
+            if (!verseGroups[verse.category]) {
+                verseGroups[verse.category] = [];
+            }
+            verseGroups[verse.category].push(verse);
         });
-    });
+        
+        Object.keys(verseGroups).forEach(category => {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'verse-category';
+            
+            const categoryTitle = document.createElement('h4');
+            categoryTitle.className = 'category-title';
+            categoryTitle.textContent = category;
+            categoryDiv.appendChild(categoryTitle);
+            
+            verseGroups[category].forEach(verse => {
+                const verseDiv = document.createElement('div');
+                verseDiv.className = 'verse-card';
+                verseDiv.innerHTML = `
+                    <p class="verse-reference"><strong>${verse.reference}</strong></p>
+                    <p class="verse-text">"${verse.text}"</p>
+                `;
+                categoryDiv.appendChild(verseDiv);
+            });
+            
+            scriptureResults.appendChild(categoryDiv);
+        });
+    } else {
+        scriptureResults.innerHTML = '<p class="no-results">No specific verses found in this category.</p>';
+    }
     
-    // Render next steps
-    const nextStepsList = document.getElementById('nextStepsList');
-    nextStepsList.innerHTML = '';
-    
-    topCategories.forEach(catId => {
-        const step = DOCTRINAL_RULES.nextSteps[catId];
-        const li = document.createElement('li');
-        li.textContent = step;
-        li.className = 'next-step-item';
-        nextStepsList.appendChild(li);
-    });
+    // Render analysis
+    const analysisText = document.getElementById('analysisText');
+    analysisText.innerHTML = currentState.analysis;
 }
 
 // === NAVIGATION ===
@@ -211,12 +153,12 @@ function goToPhase(phaseNum) {
 function resetForm() {
     currentState = {
         teaching: '',
-        questions: [],
-        answers: {},
+        detectedCategories: [],
         verdict: null,
-        categoryScores: {}
+        scriptureVerses: [],
+        analysis: ''
     };
     teachingInput.value = '';
-    questionsContainer.innerHTML = '';
+    teachingInput.focus();
     goToPhase(1);
 }
