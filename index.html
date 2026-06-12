@@ -3,71 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>📝 To-Do List App</title>
-    <link rel="stylesheet" href="todo-styles.css">
+    <title>🛡 Biblical Discernment System 5.0</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>📝 My To-Do List</h1>
-            <p class="subtitle">Stay organized and productive</p>
+            <h1>🛡 Biblical Discernment System 5.0</h1>
+            <p class="subtitle">Evaluate teachings against the 66 books of the Bible</p>
         </header>
 
         <main>
-            <!-- Input Section -->
-            <div class="input-section">
+            <!-- Phase 1: Input Teaching -->
+            <section id="phase1" class="phase active">
+                <h2>Step 1: Describe the Teaching</h2>
+                <p class="instruction">Paste the teaching, link, or description below:</p>
+                
                 <div class="input-group">
-                    <input 
-                        type="text" 
-                        id="todoInput" 
-                        placeholder="Add a new task..." 
-                        class="todo-input"
-                    >
-                    <button id="addBtn" class="add-btn">Add Task</button>
+                    <textarea 
+                        id="teachingInput" 
+                        placeholder="Enter the teaching or claim you want to evaluate..."
+                        class="teaching-textarea"
+                    ></textarea>
                 </div>
-                <div class="filter-buttons">
-                    <button class="filter-btn active" data-filter="all">All</button>
-                    <button class="filter-btn" data-filter="active">Active</button>
-                    <button class="filter-btn" data-filter="completed">Completed</button>
-                </div>
-            </div>
+                
+                <button id="analyzeBtn" class="btn btn-primary">Analyze Teaching</button>
+            </section>
 
-            <!-- Stats Section -->
-            <div class="stats">
-                <div class="stat">
-                    <span class="stat-label">Total:</span>
-                    <span class="stat-value" id="totalCount">0</span>
+            <!-- Phase 2: Smart Questions -->
+            <section id="phase2" class="phase">
+                <h2>Step 2: Answer Clarifying Questions</h2>
+                <p class="instruction">These questions help us evaluate the teaching accurately:</p>
+                
+                <div id="questionsContainer" class="questions-container"></div>
+                
+                <div class="phase-actions">
+                    <button id="backBtn1" class="btn btn-secondary">Back</button>
+                    <button id="evaluateBtn" class="btn btn-primary">Evaluate Teaching</button>
                 </div>
-                <div class="stat">
-                    <span class="stat-label">Active:</span>
-                    <span class="stat-value" id="activeCount">0</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Completed:</span>
-                    <span class="stat-value" id="completedCount">0</span>
-                </div>
-            </div>
+            </section>
 
-            <!-- Tasks List -->
-            <div class="tasks-container">
-                <ul id="todoList" class="todo-list"></ul>
-                <div id="emptyState" class="empty-state">
-                    <p>✨ No tasks yet. Add one to get started!</p>
+            <!-- Phase 3: Results -->
+            <section id="phase3" class="phase">
+                <h2>Step 3: Assessment Results</h2>
+                
+                <!-- Overall Verdict -->
+                <div id="verdictBox" class="verdict-box"></div>
+                
+                <!-- Category Breakdown -->
+                <div id="categoriesContainer" class="categories-container"></div>
+                
+                <!-- Scripture References -->
+                <div id="scriptureBox" class="scripture-box">
+                    <h3>📖 Key Scripture References</h3>
+                    <ul id="scriptureList" class="scripture-list"></ul>
                 </div>
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="action-buttons">
-                <button id="clearCompletedBtn" class="action-btn secondary">Clear Completed</button>
-                <button id="clearAllBtn" class="action-btn danger">Clear All</button>
-            </div>
+                
+                <!-- Next Steps -->
+                <div id="nextStepsBox" class="next-steps-box">
+                    <h3>📚 Next Steps for Deeper Study</h3>
+                    <ul id="nextStepsList" class="next-steps-list"></ul>
+                </div>
+                
+                <!-- Actions -->
+                <div class="phase-actions">
+                    <button id="backBtn2" class="btn btn-secondary">Back to Questions</button>
+                    <button id="startOverBtn" class="btn btn-primary">Start Over</button>
+                </div>
+            </section>
         </main>
 
         <footer>
-            <p>💾 Your tasks are automatically saved</p>
+            <p>📖 Evaluating teachings against the authority of Scripture (all 66 books)</p>
         </footer>
     </div>
 
-    <script src="todo-app.js"></script>
+    <script src="doctrinal-rules.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

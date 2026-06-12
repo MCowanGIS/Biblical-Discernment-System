@@ -1,316 +1,222 @@
 // ============================================
-// TODO APP - LOCAL STORAGE FUNCTIONALITY
+// BIBLICAL DISCERNMENT SYSTEM 5.0
+// Main Application Logic
 // ============================================
 
-// STATE - Store all tasks in memory
-let tasks = [];
-let currentFilter = 'all';
+let currentState = {
+    teaching: '',
+    questions: [],
+    answers: {},
+    verdict: null,
+    categoryScores: {}
+};
 
-// DOM ELEMENTS
-const todoInput = document.getElementById('todoInput');
-const addBtn = document.getElementById('addBtn');
-const todoList = document.getElementById('todoList');
-const emptyState = document.getElementById('emptyState');
-const filterBtns = document.querySelectorAll('.filter-btn');
-const totalCount = document.getElementById('totalCount');
-const activeCount = document.getElementById('activeCount');
-const completedCount = document.getElementById('completedCount');
-const clearCompletedBtn = document.getElementById('clearCompletedBtn');
-const clearAllBtn = document.getElementById('clearAllBtn');
+// === DOM ELEMENTS ===
+const phases = {
+    1: document.getElementById('phase1'),
+    2: document.getElementById('phase2'),
+    3: document.getElementById('phase3')
+};
 
-// ============================================
-// INITIALIZATION - Run on page load
-// ============================================
+const teachingInput = document.getElementById('teachingInput');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const questionsContainer = document.getElementById('questionsContainer');
+const evaluateBtn = document.getElementById('evaluateBtn');
+const backBtn1 = document.getElementById('backBtn1');
+const backBtn2 = document.getElementById('backBtn2');
+const startOverBtn = document.getElementById('startOverBtn');
+
+// === INITIALIZATION ===
 document.addEventListener('DOMContentLoaded', () => {
-    loadTasksFromLocalStorage();
-    renderTasks();
-    updateStats();
     setupEventListeners();
 });
 
-// ============================================
-// LOCAL STORAGE FUNCTIONS
-// ============================================
-
-/**
- * SAVE tasks to browser's local storage
- * This runs after every change to tasks array
- */
-function saveTasksToLocalStorage() {
-    // Convert tasks array to JSON string
-    const tasksJSON = JSON.stringify(tasks);
-    
-    // Save to localStorage with key 'todoTasks'
-    localStorage.setItem('todoTasks', tasksJSON);
-    
-    console.log('✅ Tasks saved to local storage');
-}
-
-/**
- * LOAD tasks from browser's local storage
- * This runs on page load
- */
-function loadTasksFromLocalStorage() {
-    // Get tasks from localStorage
-    const tasksJSON = localStorage.getItem('todoTasks');
-    
-    // If tasks exist, parse them from JSON
-    if (tasksJSON) {
-        tasks = JSON.parse(tasksJSON);
-        console.log('✅ Tasks loaded from local storage:', tasks);
-    } else {
-        tasks = [];
-        console.log('📝 No saved tasks found');
-    }
-}
-
-// ============================================
-// EVENT LISTENERS - Wire up buttons
-// ============================================
-
 function setupEventListeners() {
-    // ADD TASK button
-    addBtn.addEventListener('click', addTask);
+    analyzeBtn.addEventListener('click', analyzeTeaching);
+    evaluateBtn.addEventListener('click', evaluateTeaching);
+    backBtn1.addEventListener('click', () => goToPhase(1));
+    backBtn2.addEventListener('click', () => goToPhase(2));
+    startOverBtn.addEventListener('click', resetForm);
+}
+
+// === PHASE 1: ANALYZE TEACHING ===
+function analyzeTeaching() {
+    const teaching = teachingInput.value.trim();
     
-    // ENTER key in input field
-    todoInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') addTask();
+    if (!teaching) {
+        alert('Please enter a teaching to analyze');
+        return;
+    }
+    
+    currentState.teaching = teaching;
+    currentState.questions = DOCTRINAL_RULES.generateSmartQuestions(teaching);
+    
+    renderQuestions();
+    goToPhase(2);
+}
+
+// === PHASE 2: RENDER QUESTIONS ===
+function renderQuestions() {
+    questionsContainer.innerHTML = '';
+    
+    currentState.questions.forEach((q, index) => {
+        const questionDiv = document.createElement('div');
+        questionDiv.className = 'question-card';
+        questionDiv.innerHTML = `
+            <div class="question-header">
+                <span class="category-badge">${DOCTRINAL_RULES.categories[q.category - 1].icon} ${q.categoryName}</span>
+                <span class="question-number">Question ${index + 1} of ${currentState.questions.length}</span>
+            </div>
+            <p class="question-text">${q.text}</p>
+            <div class="option-group">
+                ${q.options.map(opt => `
+                    <label class="option-label">
+                        <input 
+                            type="radio" 
+                            name="question-${q.category}" 
+                            value="${opt}"
+                            ${currentState.answers[q.category] === opt ? 'checked' : ''}
+                        >
+                        <span class="option-text">${opt}</span>
+                    </label>
+                `).join('')}
+            </div>
+        `;
+        
+        // Add change listeners
+        const radios = questionDiv.querySelectorAll('input[type="radio"]');
+        radios.forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentState.answers[q.category] = e.target.value;
+            });
+        });
+        
+        questionsContainer.appendChild(questionDiv);
+    });
+}
+
+// === PHASE 3: EVALUATE TEACHING ===
+function evaluateTeaching() {
+    // Check all questions answered
+    if (Object.keys(currentState.answers).length !== currentState.questions.length) {
+        alert('Please answer all questions');
+        return;
+    }
+    
+    // Calculate verdict
+    const verdictId = DOCTRINAL_RULES.calculateVerdict(currentState.answers);
+    currentState.verdict = DOCTRINAL_RULES.verdicts[verdictId - 1];
+    
+    // Score each category based on answers
+    scoreCategories();
+    
+    // Render results
+    renderResults();
+    goToPhase(3);
+}
+
+// === SCORE CATEGORIES ===
+function scoreCategories() {
+    DOCTRINAL_RULES.categories.forEach(cat => {
+        const answer = currentState.answers[cat.id];
+        
+        if (answer === 'Yes') {
+            currentState.categoryScores[cat.id] = { score: 1, status: 'Aligns with Scripture' };
+        } else if (answer === 'Partially/Unclear') {
+            currentState.categoryScores[cat.id] = { score: 0.5, status: 'Partially aligns / Needs clarification' };
+        } else {
+            currentState.categoryScores[cat.id] = { score: 0, status: 'Contradicts Scripture' };
+        }
+    });
+}
+
+// === RENDER RESULTS ===
+function renderResults() {
+    // Render verdict box
+    const verdictBox = document.getElementById('verdictBox');
+    verdictBox.innerHTML = `
+        <div class="verdict-content" style="border-left: 5px solid ${currentState.verdict.color}">
+            <div class="verdict-icon">${currentState.verdict.icon}</div>
+            <div class="verdict-text">
+                <h3 class="verdict-title">${currentState.verdict.name}</h3>
+                <p class="verdict-description">${currentState.verdict.description}</p>
+                <p class="teaching-quote"><strong>Teaching:</strong> "${currentState.teaching.substring(0, 100)}${currentState.teaching.length > 100 ? '...' : ''}"</p>
+            </div>
+        </div>
+    `;
+    
+    // Render category breakdown
+    const categoriesContainer = document.getElementById('categoriesContainer');
+    categoriesContainer.innerHTML = '<h3>Category Breakdown</h3>';
+    
+    const categoriesGrid = document.createElement('div');
+    categoriesGrid.className = 'categories-grid';
+    
+    DOCTRINAL_RULES.categories.forEach(cat => {
+        const score = currentState.categoryScores[cat.id];
+        const statusColor = score.score === 1 ? '#00b300' : score.score === 0.5 ? '#ffcc00' : '#ff3333';
+        
+        const categoryCard = document.createElement('div');
+        categoryCard.className = 'category-card';
+        categoryCard.style.borderLeftColor = statusColor;
+        categoryCard.innerHTML = `
+            <div class="category-header">
+                <span class="category-icon">${cat.icon}</span>
+                <h4 class="category-name">${cat.name}</h4>
+            </div>
+            <p class="category-status" style="color: ${statusColor}">${score.status}</p>
+        `;
+        
+        categoriesGrid.appendChild(categoryCard);
     });
     
-    // FILTER buttons
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            filterBtns.forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentFilter = btn.dataset.filter;
-            renderTasks();
+    categoriesContainer.appendChild(categoriesGrid);
+    
+    // Render scripture references
+    const scriptureList = document.getElementById('scriptureList');
+    scriptureList.innerHTML = '';
+    
+    // Get top categories mentioned
+    const topCategories = currentState.questions.slice(0, 5).map(q => q.category);
+    topCategories.forEach(catId => {
+        const references = DOCTRINAL_RULES.scriptureReferences[catId];
+        references.forEach(ref => {
+            const li = document.createElement('li');
+            li.textContent = ref;
+            li.className = 'scripture-verse';
+            scriptureList.appendChild(li);
         });
     });
     
-    // CLEAR COMPLETED button
-    clearCompletedBtn.addEventListener('click', clearCompleted);
+    // Render next steps
+    const nextStepsList = document.getElementById('nextStepsList');
+    nextStepsList.innerHTML = '';
     
-    // CLEAR ALL button
-    clearAllBtn.addEventListener('click', clearAll);
-}
-
-// ============================================
-// ADD TASK FUNCTION
-// ============================================
-
-/**
- * CREATE a new task and add to tasks array
- */
-function addTask() {
-    const taskText = todoInput.value.trim();
-    
-    // Validation: Check if input is empty
-    if (taskText === '') {
-        alert('Please enter a task');
-        return;
-    }
-    
-    // Create new task object
-    const newTask = {
-        id: Date.now(), // Unique ID using timestamp
-        text: taskText,
-        completed: false,
-        createdAt: new Date().toLocaleDateString()
-    };
-    
-    // Add to tasks array
-    tasks.push(newTask);
-    
-    // Clear input field
-    todoInput.value = '';
-    todoInput.focus();
-    
-    // Save to local storage
-    saveTasksToLocalStorage();
-    
-    // Re-render the list
-    renderTasks();
-    updateStats();
-    
-    console.log('✅ Task added:', newTask);
-}
-
-// ============================================
-// RENDER TASKS - Display tasks on page
-// ============================================
-
-/**
- * RENDER tasks to the DOM based on current filter
- */
-function renderTasks() {
-    // Clear the list
-    todoList.innerHTML = '';
-    
-    // Filter tasks based on current filter
-    let filteredTasks = tasks;
-    
-    if (currentFilter === 'active') {
-        filteredTasks = tasks.filter(task => !task.completed);
-    } else if (currentFilter === 'completed') {
-        filteredTasks = tasks.filter(task => task.completed);
-    }
-    
-    // Show/hide empty state
-    if (filteredTasks.length === 0) {
-        emptyState.style.display = 'block';
-        return;
-    } else {
-        emptyState.style.display = 'none';
-    }
-    
-    // Create HTML for each task
-    filteredTasks.forEach(task => {
-        const listItem = document.createElement('li');
-        listItem.className = `todo-item ${task.completed ? 'completed' : ''}`;
-        listItem.dataset.id = task.id;
-        
-        // Checkbox for marking complete
-        const checkbox = document.createElement('input');
-        checkbox.type = 'checkbox';
-        checkbox.className = 'todo-checkbox';
-        checkbox.checked = task.completed;
-        checkbox.addEventListener('change', () => toggleComplete(task.id));
-        
-        // Task text
-        const textSpan = document.createElement('span');
-        textSpan.className = 'todo-text';
-        textSpan.textContent = task.text;
-        
-        // Edit button
-        const editBtn = document.createElement('button');
-        editBtn.className = 'icon-btn edit-btn';
-        editBtn.textContent = '✏️';
-        editBtn.addEventListener('click', () => editTask(task.id));
-        
-        // Delete button
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'icon-btn delete-btn';
-        deleteBtn.textContent = '🗑️';
-        deleteBtn.addEventListener('click', () => deleteTask(task.id));
-        
-        // Actions container
-        const actions = document.createElement('div');
-        actions.className = 'todo-actions';
-        actions.appendChild(editBtn);
-        actions.appendChild(deleteBtn);
-        
-        // Append all to list item
-        listItem.appendChild(checkbox);
-        listItem.appendChild(textSpan);
-        listItem.appendChild(actions);
-        
-        // Add to list
-        todoList.appendChild(listItem);
+    topCategories.forEach(catId => {
+        const step = DOCTRINAL_RULES.nextSteps[catId];
+        const li = document.createElement('li');
+        li.textContent = step;
+        li.className = 'next-step-item';
+        nextStepsList.appendChild(li);
     });
 }
 
-// ============================================
-// TASK ACTIONS - Complete, Edit, Delete
-// ============================================
-
-/**
- * TOGGLE task complete status
- */
-function toggleComplete(taskId) {
-    const task = tasks.find(t => t.id === taskId);
-    if (task) {
-        task.completed = !task.completed;
-        saveTasksToLocalStorage();
-        renderTasks();
-        updateStats();
-        console.log(`✅ Task ${taskId} toggled to: ${task.completed}`);
-    }
+// === NAVIGATION ===
+function goToPhase(phaseNum) {
+    Object.values(phases).forEach(phase => phase.classList.remove('active'));
+    phases[phaseNum].classList.add('active');
+    window.scrollTo(0, 0);
 }
 
-/**
- * EDIT a task
- */
-function editTask(taskId) {
-    const task = tasks.find(t => t.id === taskId);
-    if (!task) return;
-    
-    // Prompt user for new text
-    const newText = prompt('Edit your task:', task.text);
-    
-    // If user didn't cancel and text is not empty
-    if (newText !== null && newText.trim() !== '') {
-        task.text = newText.trim();
-        saveTasksToLocalStorage();
-        renderTasks();
-        console.log(`✏️ Task ${taskId} edited to: ${newText}`);
-    }
-}
-
-/**
- * DELETE a single task
- */
-function deleteTask(taskId) {
-    if (confirm('Are you sure you want to delete this task?')) {
-        // Remove task from array
-        tasks = tasks.filter(t => t.id !== taskId);
-        saveTasksToLocalStorage();
-        renderTasks();
-        updateStats();
-        console.log(`🗑️ Task ${taskId} deleted`);
-    }
-}
-
-/**
- * CLEAR all completed tasks
- */
-function clearCompleted() {
-    const completedCount = tasks.filter(t => t.completed).length;
-    
-    if (completedCount === 0) {
-        alert('No completed tasks to clear');
-        return;
-    }
-    
-    if (confirm(`Clear ${completedCount} completed task(s)?`)) {
-        tasks = tasks.filter(t => !t.completed);
-        saveTasksToLocalStorage();
-        renderTasks();
-        updateStats();
-        console.log(`✅ Cleared ${completedCount} completed tasks`);
-    }
-}
-
-/**
- * CLEAR all tasks
- */
-function clearAll() {
-    if (tasks.length === 0) {
-        alert('No tasks to clear');
-        return;
-    }
-    
-    if (confirm(`Delete all ${tasks.length} tasks? This cannot be undone!`)) {
-        tasks = [];
-        localStorage.removeItem('todoTasks');
-        renderTasks();
-        updateStats();
-        console.log('🗑️ All tasks deleted');
-    }
-}
-
-// ============================================
-// UPDATE STATS - Show counts
-// ============================================
-
-/**
- * UPDATE the stat counters
- */
-function updateStats() {
-    const total = tasks.length;
-    const completed = tasks.filter(t => t.completed).length;
-    const active = total - completed;
-    
-    totalCount.textContent = total;
-    activeCount.textContent = active;
-    completedCount.textContent = completed;
+function resetForm() {
+    currentState = {
+        teaching: '',
+        questions: [],
+        answers: {},
+        verdict: null,
+        categoryScores: {}
+    };
+    teachingInput.value = '';
+    questionsContainer.innerHTML = '';
+    goToPhase(1);
 }
